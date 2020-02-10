@@ -14,7 +14,7 @@ with possibly uncountably many solutions.
 ## Installation
 To use PV_TSSOS in Julia, run:
 ```ruby
-pkg> add https://github.com/maihoanganh/PV_TSSOS
+pkg> add https://github.com/maihoanganh/CombinationsOfSparsities
 ```
 # Dependency
 MOSEK (SDP solver)
