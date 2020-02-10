@@ -1,0 +1,4 @@
+name = "CombinationsOfSparsities"
+uuid = "2d878de0-4c04-11ea-27cb-df21b95b000b"
+authors = ["Hoang Anh <nhmai@laas.fr>"]
+version = "0.1.0"
