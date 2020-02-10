@@ -1,5 +1,5 @@
 # About CombinationsOfSparsities
-CombinationsOfSparsities is a Julia package for both polynomial optimization and polynomial systems by combining [term] (https://github.com/wangjie212/TSSOS) and correalative sparsities for the SDP hierarchies based on Putina's and [Putinar-Vasilescu's Positivstellensatz](https://arxiv.org/abs/1911.11428). 
+CombinationsOfSparsities is a Julia package for both polynomial optimization and polynomial systems by combining [term](https://github.com/wangjie212/TSSOS) and correalative sparsities for the SDP hierarchies based on Putina's and [Putinar-Vasilescu's Positivstellensatz](https://arxiv.org/abs/1911.11428). 
 ## New advances
 - Obtaining an approximate global optimizer of a general polynomial optimization 
 
