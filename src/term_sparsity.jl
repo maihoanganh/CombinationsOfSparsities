@@ -1,5 +1,5 @@
 function get_blocks(r,n,m,l,supp_U,lu0,lu,lw,lg,lh,supp_g,supp_h,coe_g,coe_h,basis_sigma0,basis_sigma,basis_psi)
-
+    
     supp_U=sortslices(supp_U,dims=2)
     supp_U=unique(supp_U,dims=2)
     lsupp_U=size(supp_U,2)
@@ -116,6 +116,7 @@ function get_blocks(r,n,m,l,supp_U,lu0,lu,lw,lg,lh,supp_g,supp_h,coe_g,coe_h,bas
                 end
             end
         end
+        """
         for i=1:m
             for j=1:lblock_sigma[i]
                 for p=1:lt_block_sigma[i][j]
@@ -141,6 +142,7 @@ function get_blocks(r,n,m,l,supp_U,lu0,lu,lw,lg,lh,supp_g,supp_h,coe_g,coe_h,bas
                 end
             end
         end
+        """
         supp_U=sortslices(supp_U,dims=2)
         supp_U=unique(supp_U,dims=2)
         lsupp_U=size(supp_U,2)
@@ -170,7 +172,7 @@ end
 
 function extract_optimizers(Gr,lu0,basis_sigma0,n,n_sub,m,l,opt_val,f,g,h,x,I_sub)
     #extraction of optimizers
-    rk=lu0-rank(Gr, 1e-4)
+    rk=lu0-rank(Gr, 1e-3)
 
     println("Rank of moment matrix = ", rk)
     sol=[]
@@ -189,7 +191,7 @@ function extract_optimizers(Gr,lu0,basis_sigma0,n,n_sub,m,l,opt_val,f,g,h,x,I_su
         U=Matrix(U')
 
         w=basis_sigma0[:,V[2]];
-        N=zeros(length(V[2]),rk,n_sub)
+        N=Array{Any}(undef,n_sub)
         flag=1
         Idmat=zeros(n,n_sub)
         Idmat[I_sub,:]=Matrix{Int}(LinearAlgebra.I,n_sub,n_sub)
@@ -199,7 +201,11 @@ function extract_optimizers(Gr,lu0,basis_sigma0,n,n_sub,m,l,opt_val,f,g,h,x,I_su
                 xwj=w[:,j]+Idmat[:,i]
                 for t=1:lu0
                     if xwj==basis_sigma0[:,t]
-                        kk=[kk;t]
+                        if kk==[]
+                            kk=t
+                        else
+                            kk=[kk;t]
+                        end
                         break
                     end
                 end
@@ -208,7 +214,7 @@ function extract_optimizers(Gr,lu0,basis_sigma0,n,n_sub,m,l,opt_val,f,g,h,x,I_su
                 flag=0
                 break
             else
-                N[:,:,i]=U[kk,:]
+                N[i]=U[kk,:]
             end
         end
 
@@ -218,7 +224,7 @@ function extract_optimizers(Gr,lu0,basis_sigma0,n,n_sub,m,l,opt_val,f,g,h,x,I_su
             rands = rand(n_sub,1);rands = rands/sum(rands);
             M = zeros(length(V[2]),rk);
             for i=1:n_sub
-                M+=rands[i]*N[:,:,i];
+                M+=rands[i]*N[i];
             end
 
             F= schur(M);
@@ -227,7 +233,7 @@ function extract_optimizers(Gr,lu0,basis_sigma0,n,n_sub,m,l,opt_val,f,g,h,x,I_su
             for i=1:rk
                 atom=[]
                 for j = 1:n_sub
-                    atom=[atom;L[:,i]'*N[:,:,j]*L[:,i]];
+                    atom=[atom;L[:,i]'*N[j]*L[:,i]];
                 end
                 println("------------------------------------")
                 println("atom ",i," = ",atom)
@@ -238,7 +244,7 @@ function extract_optimizers(Gr,lu0,basis_sigma0,n,n_sub,m,l,opt_val,f,g,h,x,I_su
                     check=0
                 end
                 println("check lower bound  = ",check)
-                if check>1e-2
+                if abs(check)>1e-2
                     flag=0
                 end
 
@@ -456,4 +462,280 @@ function Pu_block_hierarchy(x,f,g,h,k,r)
 
     return opt_val, sol
 
+end
+
+
+
+function PuVa_block_hierarchy(x,f,g,h,eps,k,r;knownlb=0)
+
+    theta=1+sum(x.^2)
+    
+    if knownlb==1
+        d=ceil(UInt16,maxdegree(f)/2)
+    else
+        d=1+floor(UInt16,maxdegree(f)/2)
+    end
+    
+    
+    
+    n=length(x) # Number of variables
+    m=length(g) # Number of constraints
+    l=length(h) # Number of constraints
+
+    u = Array{UInt16}(undef,m)
+    w = Array{UInt16}(undef,l)
+    
+    F=theta^k*(f+eps*theta^d)
+    
+    supp_F,coe_F=info(F,x,n)
+    lF=length(coe_F)
+    A=supp_F
+    
+    supp_thetak,coe_thetak=info(theta^k,x,n)
+    lthetak=length(coe_thetak)
+    A=[A supp_thetak]
+
+    supp_g=Array{Any}(undef,m)
+    coe_g=Array{Any}(undef,m)
+    lg=Array{Any}(undef,m)
+
+    supp_h=Array{Any}(undef,l)
+    coe_h=Array{Any}(undef,l)
+    lh=Array{Any}(undef,l)
+
+    lu0=binomial(k+d+n,n)
+    lu=Array{UInt16}(undef,m)
+    lw=Array{UInt16}(undef,l)
+
+    basis_sigma0=get_basis(n,k+d)
+    basis_sigma=Array{Any}(undef,m)
+    basis_psi=Array{Any}(undef,l)
+
+    for i=1:m
+        supp_g[i],coe_g[i]=info(g[i],x,n)
+        lg[i]=length(coe_g[i])
+        A=[A supp_g[i]]
+
+        u[i]=ceil(UInt16,maxdegree(g[i])/2)
+        lu[i]=binomial(k+d-u[i]+n,n)
+        basis_sigma[i]=basis_sigma0[:,1:lu[i]]
+    end
+
+
+    for i=1:l
+        supp_h[i],coe_h[i]=info(h[i],x,n)
+        lh[i]=length(coe_h[i])
+        A=[A supp_h[i]]
+
+        w[i]=ceil(UInt16,maxdegree(h[i])/2)
+        lw[i]=binomial(k+d-w[i]+n,n)
+        basis_psi[i]=basis_sigma0[:,1:lw[i]]
+    end
+
+    supp_U=A
+
+    supp_U,lsupp_U,block_sigma0,block_sigma,block_psi,lblock_sigma0,lblock_sigma,lblock_psi,lt_block_sigma0,lt_block_sigma,lt_block_psi=get_blocks(r,n,m,l,supp_U,lu0,lu,lw,lg,lh,supp_g,supp_h,coe_g,coe_h,basis_sigma0,basis_sigma,basis_psi)
+
+    println("block_sigma0 = ",block_sigma0)
+    println("-----------------------------")
+    println("block_sigma = ",block_sigma)
+    println("-----------------------------")
+    println("block_psi = ",block_psi)
+
+    model=Model(with_optimizer(Mosek.Optimizer, QUIET=true))
+    cons=[AffExpr(0) for i=1:lsupp_U]
+
+    G0=Array{Any}(undef, lblock_sigma0)
+    G=Array{Any}(undef, m)
+    H=Array{Any}(undef, l)
+
+    for j=1:lblock_sigma0
+        if lt_block_sigma0[j]==1
+            G0[j]=@variable(model, lower_bound=0)
+            nota=UInt8(2)*basis_sigma0[:,block_sigma0[j]]
+            Locb=bfind(supp_U,lsupp_U,nota,n)
+            cons[Locb]+=G0[j]
+        else
+            G0[j]=@variable(model, [1:lt_block_sigma0[j], 1:lt_block_sigma0[j]],PSD)
+            for p=1:lt_block_sigma0[j]
+                for q=p:lt_block_sigma0[j]
+                    nota=basis_sigma0[:,block_sigma0[j][p]]+basis_sigma0[:,block_sigma0[j][q]]
+                    Locb=bfind(supp_U,lsupp_U,nota,n)
+                    if p==q
+                        cons[Locb]+=G0[j][p,q]
+                    else
+                        cons[Locb]+=2*G0[j][p,q]
+                    end
+                end
+            end
+        end
+    end
+
+
+    for i=1:m
+        G[i]=Array{Any}(undef, lblock_sigma[i])
+        for j=1:lblock_sigma[i]
+            if lt_block_sigma[i][j]==1
+                G[i][j]=@variable(model, lower_bound=0)
+                for z=1:lg[i]
+                    nota=supp_g[i][:,z]+UInt8(2)*basis_sigma[i][:,block_sigma[i][j]]
+                    Locb=bfind(supp_U,lsupp_U,nota,n)
+                    cons[Locb]+=coe_g[i][z]*G[i][j]
+                end
+            else
+                G[i][j]=@variable(model, [1:lt_block_sigma[i][j], 1:lt_block_sigma[i][j]],PSD)
+                for p=1:lt_block_sigma[i][j]
+                    for q=p:lt_block_sigma[i][j]
+                        for z=1:lg[i]
+                            nota=basis_sigma[i][:,block_sigma[i][j][p]]+basis_sigma[i][:,block_sigma[i][j][q]]+supp_g[i][:,z]
+                            Locb=bfind(supp_U,lsupp_U,nota,n)
+                            if p==q
+                              cons[Locb]+=coe_g[i][z]*G[i][j][p,q]
+                            else
+                              cons[Locb]+=2*coe_g[i][z]*G[i][j][p,q]
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    for i=1:l
+        H[i]=Array{Any}(undef, lblock_psi[i])
+        for j=1:lblock_psi[i]
+            if lt_block_psi[i][j]==1
+                H[i][j]=@variable(model)
+                for z=1:lh[i]
+                    nota=supp_h[i][:,z]+UInt8(2)*basis_psi[i][:,block_psi[i][j]]
+                    Locb=bfind(supp_U,lsupp_U,nota,n)
+                    cons[Locb]+=coe_h[i][z]*H[i][j]
+                end
+            else
+                H[i][j]=@variable(model, [1:lt_block_psi[i][j], 1:lt_block_psi[i][j]],Symmetric)
+                for p=1:lt_block_psi[i][j]
+                    for q=p:lt_block_psi[i][j]
+                        for z=1:lh[i]
+                            nota=basis_psi[i][:,block_psi[i][j][p]]+basis_psi[i][:,block_psi[i][j][q]]+supp_h[i][:,z]
+                            Locb=bfind(supp_U,lsupp_U,nota,n)
+                            if p==q
+                              cons[Locb]+=coe_h[i][z]*H[i][j][p,q]
+                            else
+                              cons[Locb]+=2*coe_h[i][z]*H[i][j][p,q]
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    bc=zeros(1,lsupp_U)
+    for i=1:lF
+        Locb=bfind(supp_U,lsupp_U,supp_F[:,i],n)
+        bc[Locb]=coe_F[i]
+    end
+    theta_bc=zeros(1,lsupp_U)
+    for i=1:lthetak
+        Locb=bfind(supp_U,lsupp_U,supp_thetak[:,i],n)
+        theta_bc[Locb]=coe_thetak[i]
+    end
+    @variable(model, lambda)
+    @constraint(model, bc-lambda.*theta_bc-cons'.==0)
+    @objective(model, Max, lambda)
+    optimize!(model)
+
+    opt_val = value(lambda)
+    println("Termination status = ", termination_status(model))
+    println("Optimal value = ",opt_val)
+
+    Gr=zeros(lu0,lu0)
+    for j=1:lblock_sigma0
+        if lt_block_sigma0[j]==1
+            Gr[block_sigma0[j][1],block_sigma0[j][1]]=value(G0[j])
+        else
+            Gr[block_sigma0[j],block_sigma0[j]]=value.(G0[j])
+        end
+    end
+
+    sol=extract_optimizers(Gr,lu0,basis_sigma0,n,n,m,l,opt_val,f,g,h,x,1:n)
+
+    return opt_val, sol
+
+end
+
+
+function term_sparsity_adding_spherical_constraints(x,g,h,eps,k,r)
+    # small parameter
+    n=length(x)
+    m=length(g)
+    l=length(h)
+
+    # Define centers and square of radius
+    a0=zeros(Float32,(n, 1)); a = Matrix{Float32}(I, n, n)
+
+    println("Determine L0:")
+    println("------------------------------------")
+
+    # Polynomial to optimize 
+    f = [x-a0]'*[x-a0]
+
+    if m==0
+        g=[f]
+    else
+        g=[g;f]
+    end
+
+    L0,sol=PuVa_block_hierarchy(x,f,g,h,eps,k,r,knownlb=1)
+    
+    println("------------------------------------")
+    println("L0 = ", L0)
+    println("====================================")
+    if sol==[]
+        # Define omegat, t=0,...,n
+        omega0 = 0; omega = zeros(n)
+
+        #inequalities polynomial
+        g[end]=L0-f
+        println("Determine omega",0,":")
+        println("------------------------------------")
+
+        omega0,sol=Pu_block_hierarchy(x,f,g,h,k,r)
+        println("------------------------------------")
+        println("omega",0," = ", omega0)
+        println("====================================")
+        
+        #equalities polynomial
+        if l==0
+            h=[omega0-f]
+        else
+            h=[h;omega0-f]
+        end
+
+
+        #inequalities polynomial
+        g=g[1:end-1]
+        if sol==[]
+            for t=1:n
+                println("Determine omega",t,":")
+                println("------------------------------------")
+                if t>1
+                    #equalities polynomial
+                    h = [h;omega[t-1]-f] ; l=length(h)
+                end        
+
+                f=[x-a[:,t]]'*[x-a[:,t]]
+
+                omega[t],sol=Pu_block_hierarchy(x,f,g,h,k,r)
+                println("------------------------------------")
+                println("omega",t," = ", omega[t])
+                println("====================================")
+
+                if sol!=[]
+                    break
+                end
+            end
+        end
+    end
+    return sol
 end
