@@ -5,14 +5,14 @@ function Pu_mix_hierarchy(x,f,f0,g,I,J,W,h,k,r)
 
     lf0,supp_f0,coe_f0=sparse_info(f0,x,n0)
 
-    supp_g=Vector{Array{UInt16,2}}(undef, m0)
+    supp_g=Vector{SparseMatrixCSC}(undef, m0)
     coe_g=Vector{Vector{Float64}}(undef, m0)
     lg=Vector{UInt16}(undef, m0)
     for j=1:m0
         lg[j],supp_g[j],coe_g[j]=sparse_info(g[j],x,n0)
     end
 
-    supp_h=Vector{Array{UInt16,2}}(undef, l0)
+    supp_h=Vector{SparseMatrixCSC}(undef, l0)
     coe_h=Vector{Vector{Float64}}(undef, l0)
     lh=Vector{UInt16}(undef, l0)
     for j=1:l0
@@ -21,7 +21,7 @@ function Pu_mix_hierarchy(x,f,f0,g,I,J,W,h,k,r)
 
     p=length(I)
 
-    supp_f=Vector{Array{UInt16,2}}(undef, p)
+    supp_f=Vector{SparseMatrixCSC}(undef, p)
     coe_f=Vector{Vector{Float64}}(undef, p)
     lf=Vector{UInt16}(undef, p)
 
@@ -305,7 +305,7 @@ function PuVa_mix_hierarchy(x,f,f0,g,I,J,W,h,eps,k,r)
     #Define theta_j, hat_theta_j and D_j
     D=Vector{Polynomial{true,Int16}}(undef, p)
     Theta=Vector{Polynomial{true,Int16}}(undef, p)
-    omega=Vector{UInt8}(undef, p)
+    omega=Vector{UInt16}(undef, p)
     for j=1:p
         if j==1
             D[j]=1
@@ -325,11 +325,11 @@ function PuVa_mix_hierarchy(x,f,f0,g,I,J,W,h,eps,k,r)
 
     psi=0
     phi0=1
-    phi=Array{Any}(undef, p)
+    phi=Vector{Polynomial{true,Int16}}(undef, p)
     
-    supp_phik=Array{Any}(undef, p)
-    coe_phik=Array{Any}(undef, p)
-    lphik=Array{Any}(undef, p)
+    supp_phik=Vector{SparseMatrixCSC}(undef, p)
+    coe_phik=Vector{Vector{Float64}}(undef, p)
+    lphik=Vector{UInt16}(undef, p)
     for j=1:p
         psi+=theta[j]^d
         phi0 *=Theta[j]
@@ -340,7 +340,7 @@ function PuVa_mix_hierarchy(x,f,f0,g,I,J,W,h,eps,k,r)
                 phi[j]*=Theta[r]
             end
         end
-        lphik[j],supp_phik[j],coe_phik[j]=info(phi[j]^k,x,n0)
+        lphik[j],supp_phik[j],coe_phik[j]=sparse_info(phi[j]^k,x,n0)
     end
     ############
     lphik0,supp_phik0,coe_phik0=sparse_info(phi0^k,x,n0)
@@ -350,31 +350,31 @@ function PuVa_mix_hierarchy(x,f,f0,g,I,J,W,h,eps,k,r)
     
     lF,supp_F,coe_F=sparse_info(F,x,n0)
 
-    supp_g=Array{Any}(undef, m0)
-    coe_g=Array{Any}(undef, m0)
-    lg=Array{Any}(undef, m0)
+    supp_g=Vector{SparseMatrixCSC}(undef, m0)
+    coe_g=Vector{Vector{Float64}}(undef, m0)
+    lg=Vector{UInt16}(undef, m0)
     for j=1:m0
         lg[j],supp_g[j],coe_g[j]=sparse_info(g[j],x,n0)
     end
     ###############
     
     
-    supp_h=Array{Any}(undef, l0)
-    coe_h=Array{Any}(undef, l0)
-    lh=Array{Any}(undef, l0)
+    supp_h=Vector{SparseMatrixCSC}(undef, l0)
+    coe_h=Vector{Vector{Float64}}(undef, l0)
+    lh=Vector{UInt16}(undef, l0)
     for j=1:l0
         lh[j],supp_h[j],coe_h[j]=sparse_info(h[j],x,n0)
     end
 
     
 
-    supp_Thetakf=Array{Any}(undef, p)
-    coe_Thetakf=Array{Any}(undef, p)
-    lThetakf=Array{Any}(undef, p)
+    supp_Thetakf=Vector{SparseMatrixCSC}(undef, p)
+    coe_Thetakf=Vector{Vector{Float64}}(undef, p)
+    lThetakf=Vector{UInt16}(undef, p)
     
-    supp_Thetak=Array{Any}(undef, p)
-    coe_Thetak=Array{Any}(undef, p)
-    lThetak=Array{Any}(undef, p)
+    supp_Thetak=Vector{SparseMatrixCSC}(undef, p)
+    coe_Thetak=Vector{Vector{Float64}}(undef, p)
+    lThetak=Vector{UInt16}(undef, p)
 
     n=Vector{Int64}(undef, p)
     m=Vector{UInt16}(undef, p)
@@ -391,17 +391,18 @@ function PuVa_mix_hierarchy(x,f,f0,g,I,J,W,h,eps,k,r)
     basis_sigma=Vector{Vector{SparseMatrixCSC}}(undef, p)
     basis_psi=Vector{Vector{SparseMatrixCSC}}(undef, p)
 
-    block_sigma0=Array{Any}(undef, p)
-    block_sigma=Array{Any}(undef, p)
-    block_psi=Array{Any}(undef, p)
+    block_sigma0=Vector{Vector{Vector{UInt16}}}(undef, p)
+    block_sigma=Vector{Vector{Vector{Vector{UInt16}}}}(undef, p)
+    block_psi=Vector{Vector{Vector{Vector{UInt16}}}}(undef, p)
 
-    lblock_sigma0=Array{Any}(undef, p)
-    lblock_sigma=Array{Any}(undef, p)
-    lblock_psi=Array{Any}(undef, p)
+    lblock_sigma0=Vector{UInt16}(undef, p)
+    lblock_sigma=Vector{Vector{UInt16}}(undef, p)
+    lblock_psi=Vector{Vector{UInt16}}(undef, p)
 
-    lt_block_sigma0=Array{Any}(undef, p)
-    lt_block_sigma=Array{Any}(undef, p)
-    lt_block_psi=Array{Any}(undef, p)
+    lt_block_sigma0=Vector{Vector{UInt16}}(undef, p)
+    lt_block_sigma=Vector{Vector{Vector{UInt16}}}(undef, p)
+    lt_block_psi=Vector{Vector{Vector{UInt16}}}(undef, p)
+
 
     #Degrees of constraints
     for t=1:p
@@ -708,7 +709,7 @@ function mix_ASC(x,g,h,I,J,W,eps,k,r)
     println("------------------------------------")
 
     # Polynomial to optimize
-    f=Array{Any}(undef,p,1)
+    f=Vector{Polynomial{true,Float64}}(undef,p)
     f[1]=sum(x[I[1]].^2)
     for t=2:p
         R=I[1]
@@ -719,7 +720,7 @@ function mix_ASC(x,g,h,I,J,W,eps,k,r)
         if length(R)>0
             f[t]=sum(x[R].^2)
         else
-            f[t]=x[I[t][1]]-x[I[t][1]]
+            f[t]=0
         end
     end
     
@@ -767,10 +768,10 @@ function mix_ASC(x,g,h,I,J,W,eps,k,r)
                     
                 end
             end
-            f=Array{Any}(undef,p,1)
+            f=Vector{Polynomial{true,Float64}}(undef,p)
             for t=1:p
                 if t!=j
-                    f[t]=x[I[t][1]]-x[I[t][1]]
+                    f[t]=0
                 else
                     f[t]=sum(x[I[j]].^2)
                 end
@@ -810,10 +811,10 @@ function mix_ASC(x,g,h,I,J,W,eps,k,r)
                             end
                         end
                     end
-                    f=Array{Any}(undef,p,1)
+                    f=Vector{Polynomial{true,Float64}}(undef,p)
                     for t=1:p
                         if t!=j
-                            f[t]=x[I[t][1]]-x[I[t][1]]
+                            f[t]=0
                         else
                             f[t]=sum(x[I[j]].^2)
                         end

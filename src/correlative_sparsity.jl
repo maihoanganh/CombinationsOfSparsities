@@ -276,7 +276,7 @@ function PuVa_sparse_hierarchy(x,f0,g,h,I,J,W,eps,k)
     #Define theta_j, hat_theta_j and D_j
     D=Vector{Polynomial{true,Int16}}(undef, p)
     Theta=Vector{Polynomial{true,Int16}}(undef, p)
-    omega=Vector{UInt8}(undef, p)
+    omega=Vector{UInt16}(undef, p)
     for j=1:p
         if j==1
             D[j]=1
@@ -296,11 +296,11 @@ function PuVa_sparse_hierarchy(x,f0,g,h,I,J,W,eps,k)
 
     psi=0
     phi0=1
-    phi=Array{Any}(undef, p)
+    phi=Vector{Polynomial{true,Int16}}(undef, p)
     
-    supp_phik=Array{Any}(undef, p)
-    coe_phik=Array{Any}(undef, p)
-    lphik=Array{Any}(undef, p)
+    supp_phik=Vector{SparseMatrixCSC}(undef, p)
+    coe_phik=Vector{Vector{Float64}}(undef, p)
+    lphik=Vector{UInt16}(undef, p)
     for j=1:p
         psi+=theta[j]^d
         phi0 *=Theta[j]
@@ -311,7 +311,7 @@ function PuVa_sparse_hierarchy(x,f0,g,h,I,J,W,eps,k)
                 phi[j]*=Theta[r]
             end
         end
-        lphik[j],supp_phik[j],coe_phik[j]=info(phi[j]^k,x,n0)
+        lphik[j],supp_phik[j],coe_phik[j]=sparse_info(phi[j]^k,x,n0)
     end
     ############
     lphik0,supp_phik0,coe_phik0=sparse_info(phi0^k,x,n0)
@@ -321,18 +321,18 @@ function PuVa_sparse_hierarchy(x,f0,g,h,I,J,W,eps,k)
     
     lF,supp_F,coe_F=sparse_info(F,x,n0)
 
-    supp_g=Array{Any}(undef, m0)
-    coe_g=Array{Any}(undef, m0)
-    lg=Array{Any}(undef, m0)
+    supp_g=Vector{SparseMatrixCSC}(undef, m0)
+    coe_g=Vector{Vector{Float64}}(undef, m0)
+    lg=Vector{UInt16}(undef, m0)
     for j=1:m0
         lg[j],supp_g[j],coe_g[j]=sparse_info(g[j],x,n0)
     end
     ###############
     
     
-    supp_h=Array{Any}(undef, l0)
-    coe_h=Array{Any}(undef, l0)
-    lh=Array{Any}(undef, l0)
+    supp_h=Vector{SparseMatrixCSC}(undef, l0)
+    coe_h=Vector{Vector{Float64}}(undef, l0)
+    lh=Vector{UInt16}(undef, l0)
     for j=1:l0
         lh[j],supp_h[j],coe_h[j]=sparse_info(h[j],x,n0)
     end
